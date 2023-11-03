@@ -67,8 +67,29 @@ class BDDTests(unittest.TestCase):
         self.assertTrue(edge_exists)
 
     def test_statementA(self):
-        even = node_set_to_bdd(self.even_bools, 'x')
-        prime = node_set_to_bdd(self.prime_bools, 'y')
+        # putting it all together
+        # for each node u in PRIME, there is a node v in EVEN such that u can reach vin a positive even number of steps.
+        rr = graph_to_bdd(self.g)
+        rr2 = rr_to_rr2(rr)
+        rr2star = transitive_closure(rr2)
+
+        # get BDDs for PRIME and EVEN
+        prime = node_set_to_bdd(self.prime_bools, 'x')
+        even = node_set_to_bdd(self.even_bools, 'y')
+        
+        # even nodes in RR2star
+        even_nodes_even_steps = even & rr2star
+        vars_y = bddvar_set('y', 5)
+        # eliminate existential quantifier
+        some_v = even_nodes_even_steps.smoothing(vars_y)
+
+        # logical equivalent of -> ("if then")
+        if_prime_then_v = ~prime | some_v
+        # eliminate universal quantifier
+        vars_x = bddvar_set('x', 5)
+        result = ~((~if_prime_then_v).smoothing(vars_x))
+
+        self.assertTrue(result)
 
 if __name__ == '__main__':
     unittest.main()
